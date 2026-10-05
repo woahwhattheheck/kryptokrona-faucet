@@ -7,6 +7,10 @@ const NODE = 'localhost'
 const PORT = 11898
 const AMOUNT_TO_SEND = 500000
 const daemon = new WB.Daemon(NODE, PORT)
+let nodeDisconnected = false
+
+daemon.on('disconnect', () => { nodeDisconnected = true })
+daemon.on('connect', () => { nodeDisconnected = false })
 
 let wallet
 
@@ -90,13 +94,14 @@ const getNodeInfo = async () => {
 
         const localBlockCount = daemon.getLocalDaemonBlockCount()
         const networkBlockCount = daemon.getNetworkBlockCount()
+        const connected = !nodeDisconnected && (localBlockCount > 0 || networkBlockCount > 0)
 
         return {
-            connected: localBlockCount > 0 || networkBlockCount > 0,
+            connected,
             connection: daemon.getConnectionInfo(),
             localBlockCount,
             networkBlockCount,
-            synced: networkBlockCount > 0 && localBlockCount >= networkBlockCount,
+            synced: connected && networkBlockCount > 0 && localBlockCount >= networkBlockCount,
             blocksBehind: Math.max(networkBlockCount - localBlockCount, 0),
         }
     } catch (err) {
